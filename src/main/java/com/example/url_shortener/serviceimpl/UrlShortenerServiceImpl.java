@@ -8,25 +8,24 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
+import static com.example.url_shortener.serviceimpl.ConvertToBase62.convertToBase62;
+
 @Service
 public class UrlShortenerServiceImpl implements UrlShortenerService {
-    private final UrlShortenerRepository urlShortenerRepository;
     private static final String BASE_URL = "http://short.ly/";
-    private static final String ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static final int SHORT_URL_LENGTH = 7;
+    private final UrlShortenerRepository urlShortenerRepository;
 
     @Autowired
     public UrlShortenerServiceImpl(UrlShortenerRepository urlShortenerRepository) {
         this.urlShortenerRepository = urlShortenerRepository;
     }
 
-
     @Override
     public String shortenUrl(String originalUrl) {
         try {
             UrlShortenerEntity urlShortenerEntity = new UrlShortenerEntity();
             urlShortenerEntity.setLongUrl(originalUrl);
-            String shortUrl = generateRandomShortUrl();
+            String shortUrl = convertToBase62();
             urlShortenerEntity.setShortUrl(BASE_URL + shortUrl);
             urlShortenerEntity.setCreatedDate(LocalDateTime.now());
             urlShortenerRepository.save(urlShortenerEntity);
@@ -46,14 +45,5 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
             return urlShortenerEntity.getLongUrl();
         }
         return "No original URL found for the provided short URL: " + shortUrl;
-    }
-
-    private String generateRandomShortUrl() {
-        StringBuilder shortUrl = new StringBuilder();
-        for (int i = 0; i < SHORT_URL_LENGTH; i++) {
-            int index = (int) (Math.random() * ALPHABET.length());
-            shortUrl.append(ALPHABET.charAt(index));
-        }
-        return shortUrl.toString();
     }
 }
