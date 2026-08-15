@@ -16,7 +16,7 @@ public class UrlShortenerEntity {
     private Long id;
     @Column(name = "long_url", nullable = false, unique = true)
     private String longUrl;
-    @Column(name = "short_url", nullable = false, unique = true)
+    @Column(name = "short_url", unique = true)
     private String shortUrl;
     @Column(name = "created_date", nullable = false)
     private LocalDateTime createdDate;

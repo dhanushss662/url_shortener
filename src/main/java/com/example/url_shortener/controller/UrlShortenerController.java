@@ -20,26 +20,34 @@ public class UrlShortenerController {
     }
 
     @PostMapping("/shorten")
-    public String shortenUrl(@RequestParam String longUrl) {
+    public ResponseEntity<String> shortenUrl(@RequestParam String longUrl) {
         try {
-            return urlShortenerService.shortenUrl(longUrl);
+            return new ResponseEntity<>(urlShortenerService.shortenUrl(longUrl), HttpStatus.CREATED);
         }catch (IllegalArgumentException e) {
-            return "Long URL already exists: " + longUrl;
+            return new ResponseEntity<>("Long URL already exists: " + longUrl, HttpStatus.BAD_REQUEST);
         }catch (Exception e) {
-            return "Error occurred while shortening the URL: " + e.getMessage();
+            return new ResponseEntity<>("Error occurred while shortening the URL: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    @GetMapping("/redirect")
-    public ResponseEntity<?> redirectToLongUrl(@RequestParam String shortUrl) {
-        String originalUrl = urlShortenerService.getOriginalUrl(shortUrl);
-        if (originalUrl == null) {
-            return ResponseEntity.notFound().build();
+    @GetMapping("/{shortUrl}")
+    public ResponseEntity<Void> redirectToLongUrl(@PathVariable String shortUrl) {
+        try {
+            String originalUrl = urlShortenerService.getOriginalUrl(shortUrl);
+
+            if (!originalUrl.startsWith("http://") && !originalUrl.startsWith("https://")) {
+                originalUrl = "http://" + originalUrl;
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setLocation(URI.create(originalUrl));
+
+            return new ResponseEntity<>(headers, HttpStatus.MOVED_PERMANENTLY);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setLocation(URI.create(originalUrl));
-
-        return new ResponseEntity<>(headers, HttpStatus.MOVED_PERMANENTLY);
     }
+
 }

@@ -5,7 +5,12 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface UrlShortenerRepository extends JpaRepository<UrlShortenerEntity, Long> {
+
     UrlShortenerEntity findByShortUrl(@NotNull String shortUrl);
+
+    Optional<UrlShortenerEntity> findByLongUrl(@NotNull String longUrl);
 }
