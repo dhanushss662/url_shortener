@@ -4,6 +4,7 @@ import com.example.url_shortener.model.entity.UrlShortenerEntity;
 import com.example.url_shortener.repository.UrlShortenerRepository;
 import com.example.url_shortener.service.UrlShortenerService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -15,10 +16,13 @@ import static com.example.url_shortener.serviceimpl.ConvertToBase62.convertToBas
 public class UrlShortenerServiceImpl implements UrlShortenerService {
     private static final String BASE_URL = "http://short.ly/";
     private final UrlShortenerRepository urlShortenerRepository;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Autowired
-    public UrlShortenerServiceImpl(UrlShortenerRepository urlShortenerRepository) {
+    public UrlShortenerServiceImpl(UrlShortenerRepository urlShortenerRepository, RedisTemplate<String, String> redisTemplate) {
         this.urlShortenerRepository = urlShortenerRepository;
+        this.redisTemplate = redisTemplate;
+
     }
 
     @Override
@@ -27,7 +31,7 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
             // Check if URL already exists
             Optional<UrlShortenerEntity> existing = urlShortenerRepository.findByLongUrl(originalUrl);
             if (existing.isPresent()) {
-                throw new IllegalArgumentException("Long URL already exists: " + originalUrl);
+                throw new IllegalArgumentException("Long URL already exists: " + BASE_URL+existing.get().getShortUrl());
             }
 
             UrlShortenerEntity entity = new UrlShortenerEntity();
@@ -42,7 +46,7 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
                 base62 = String.format("%7s", base62).replace(' ', '0');
             }
             entity.setShortUrl(base62);
-
+            redisTemplate.opsForValue().set(base62, originalUrl);
             urlShortenerRepository.save(entity);
 
             return BASE_URL + base62;
@@ -55,7 +59,10 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
 
     @Override
     public String getOriginalUrl(String shortUrl) {
-
+        String originalUrl = redisTemplate.opsForValue().get(shortUrl);
+        if (originalUrl != null) {
+            return originalUrl;
+        }
         UrlShortenerEntity entity = urlShortenerRepository.findByShortUrl(shortUrl);
         if (entity == null) {
             throw new IllegalArgumentException("No original URL found for short code: " + shortUrl);
